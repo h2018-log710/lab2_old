@@ -32,16 +32,21 @@ void create_process(int arrival_time, Priority priority, int execution_time, int
 	list_push_back(incoming_process_list, process);
 }
 
-void dispatch_process(Process* process)
+void dispatch_process(int tick)
 {
-	switch (process->priority)
+	Node* node = incoming_process_list->head;
+	Process* process = NULL;
+
+	while(node)
 	{
-		case REAL_TIME:
-			list_push_back(real_time_process_list, process);
-			break;
-		default:
-			switch(process->priority) // TODO Dispatch accordingly [list_push_back / list_push_front / insert].
+		process = (Process*)node->value;
+		if(process->arrival_time == tick)
+		{
+			switch (process->priority)
 			{
+				case REAL_TIME:
+					list_push_back(real_time_process_list, process);
+					break;
 				case USER_HIGH:
 					list_push_back(user_high_process_list, process);
 					break;
@@ -56,7 +61,9 @@ void dispatch_process(Process* process)
 					exit(-1);
 					break;
 			}
-			break;
+			list_remove(incoming_process_list, node);
+		}
+		node = node->next;
 	}
 }
 
@@ -155,15 +162,22 @@ void initialize_scheduler()
 void start_scheduler()
 {
 	Process* process = NULL;
+	int tick = 0;
 	
-	while (true)
+	while (incoming_process_list->size != 0
+	    || real_time_process_list->size != 0
+		|| user_high_process_list->size != 0
+		|| user_normal_process_list->size != 0
+		|| user_low_process_list->size != 0
+		|| user_wait_process_list->size != 0)
 	{
+		tick++;
+		printf("Tick: %d\n", tick);
 		printf("%d %d %d %d %d\n", incoming_process_list->size, real_time_process_list->size, user_high_process_list->size, user_normal_process_list->size, user_low_process_list->size);
-		
+
 		if (!list_empty(incoming_process_list)) // Check for incoming processes.
 		{
-			dispatch_process((Process*)(list_front(incoming_process_list))->value);
-			list_pop_front(incoming_process_list);
+			dispatch_process(tick);
 		}
 		
 		if (!list_empty(real_time_process_list)) // Check if there is any real-time processes.

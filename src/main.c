@@ -56,7 +56,7 @@ int main(int argc, char* argv[])
 	else {
 		initialize_scheduler();
 		fill_process_list(argv[1]);
-		//start_scheduler();
+		start_scheduler();
 	}
     return 0;
 }

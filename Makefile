@@ -3,15 +3,21 @@ CFLAGS=-Wall -g
 LDFLAGS=
 LDLIBS=
 TARGET=Log710H18_lab02
+EXTRA_TARGET=log710h15process
 VPATH=src
 ODIR=obj
 BINDIR=bin
 
 objects=main.o scheduler.o list.o
+extra_objects=log710h15process.o
 
-$(TARGET): $(objects)
+$(TARGET): $(objects) $(EXTRA_TARGET)
 	@mkdir -p $(BINDIR)
 	$(CC) -o $(BINDIR)/$(TARGET) $(LDFLAGS) $(objects)
+
+$(EXTRA_TARGET): $(extra_objects)
+	@mkdir -p $(BINDIR)
+	$(CC) -o $(BINDIR)/$(EXTRA_TARGET) $(LDFLAGS) $(extra_objects)
 
 main.o: scheduler.h
 log710h15process.o:

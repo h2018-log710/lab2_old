@@ -1,5 +1,4 @@
 #include "scheduler.h"
-#include "list.h"
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -106,6 +105,43 @@ bool validate_resources(int available, int needed)
 	return false;
 }
 
+void manage_process(List* list, Process** process, Priority priority)
+{
+	Node* node = NULL;
+	
+	if (*process && (*process)->priority < priority && (*process)->is_running)
+	{
+		kill((*process)->pid, SIGSTOP);
+		// TODO waitpid
+		
+		if ((*process)->priority > USER_LOW && priority < REAL_TIME)
+		{
+			--(*process)->priority;
+		}
+	}
+	
+	node = list_front(list);
+	*process = (Process*)node->value;
+	
+	if (*process)
+	{
+		if (!(*process)->is_running)
+		{
+			execute_process(*process);
+			print_process(*process);
+			(*process)->is_running = true;
+		}
+	
+		else if ((*process)->remaining_time <= 0 && (*process)->is_running)
+		{
+			kill((*process)->pid, SIGINT);
+			free(*process);
+			*process = NULL;
+			list_remove(list, node);
+		}
+	}
+}
+
 void initialize_scheduler()
 {
 	incoming_process_list = malloc(sizeof(List));
@@ -118,11 +154,12 @@ void initialize_scheduler()
 
 void start_scheduler()
 {
-	Node* node = NULL;
 	Process* process = NULL;
 	
 	while (true)
 	{
+		printf("%d %d %d %d %d\n", incoming_process_list->size, real_time_process_list->size, user_high_process_list->size, user_normal_process_list->size, user_low_process_list->size);
+		
 		if (!list_empty(incoming_process_list)) // Check for incoming processes.
 		{
 			dispatch_process((Process*)(list_front(incoming_process_list))->value);
@@ -131,32 +168,25 @@ void start_scheduler()
 		
 		if (!list_empty(real_time_process_list)) // Check if there is any real-time processes.
 		{
-			if (process && process->priority != REAL_TIME && process->is_running)
-			{
-				// TODO Pause user process if one is currently running.
-			}
-			
-			node = list_front(real_time_process_list);
-			process = (Process*)node->value;
-			
-			if (!process->is_running)
-			{
-				execute_process(process);
-				print_process(process);
-				process->is_running = true;
-			}
-			
-			else if (process->remaining_time <= 0 && process->is_running)
-			{
-				kill(process->pid, SIGINT);
-				free(process);
-				list_remove(real_time_process_list, node);
-			}
+			manage_process(real_time_process_list, &process, REAL_TIME);
 		}
 		
 		else // No real-time processes available, check for user processes.
 		{
-			// TODO
+			if (!list_empty(user_high_process_list)) // Check if there is any high priority processes.
+			{	
+				manage_process(user_high_process_list, &process, USER_HIGH);
+			}
+			
+			else if (!list_empty(user_normal_process_list)) // Check if there is any normal priority processes.
+			{
+				manage_process(user_normal_process_list, &process, USER_NORMAL);
+			}
+			
+			else if (!list_empty(user_low_process_list)) // Check if there is any low priority processes.
+			{
+				manage_process(user_low_process_list, &process, USER_LOW);
+			}
 		}
 		
 		if (process && process->is_running)

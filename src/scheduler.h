@@ -3,6 +3,7 @@
 
 #include <stdbool.h>
 #include <sys/types.h>
+#include "list.h"
 
 typedef enum Priority
 {
@@ -32,6 +33,7 @@ void dispatch_process(Process* process);
 void execute_process(Process* process);
 void print_process(Process* process);
 bool validate_resources(int needed, int available);
+void manage_process(List* list, Process** process, Priority priority);
 void initialize_scheduler();
 void start_scheduler();
 

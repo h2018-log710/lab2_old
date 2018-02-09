@@ -1,4 +1,5 @@
 #include "scheduler.h"
+#include "resource.h"
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>

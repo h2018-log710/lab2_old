@@ -28,7 +28,7 @@ typedef struct Process
 } Process;
 
 void create_process(int arrival_time, Priority priority, int execution_time, int printers, int scanners, int modems, int cds);
-void dispatch_process(Process* process);
+void dispatch_process(int tick);
 void execute_process(Process* process);
 void print_process(Process* process);
 bool validate_resources(int needed, int available);

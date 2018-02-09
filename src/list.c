@@ -1,9 +1,9 @@
 #include "list.h"
 #include <stdlib.h>
 
-bool empty(const List* list)
+bool list_empty(const List* list)
 {
-	if (size(list) == 0)
+	if (list_size(list) == 0)
 	{
 		return true;
 	}
@@ -11,7 +11,7 @@ bool empty(const List* list)
 	return false;
 }
 
-size_t size(const List* list)
+size_t list_size(const List* list)
 {
 	if (list)
 	{
@@ -21,7 +21,7 @@ size_t size(const List* list)
 	return 0;
 }
 
-Node* front(List* list)
+Node* list_front(List* list)
 {
 	if (list)
 	{
@@ -31,7 +31,7 @@ Node* front(List* list)
 	return NULL;
 }
 
-Node* back(List* list)
+Node* list_back(List* list)
 {	
 	if (list)
 	{
@@ -41,7 +41,7 @@ Node* back(List* list)
 	return NULL;
 }
 
-void push_front(List* list, void* value)
+void list_push_front(List* list, void* value)
 {
 	if (list)
 	{
@@ -66,7 +66,7 @@ void push_front(List* list, void* value)
 	}
 }
 
-void push_back(List* list, void* value)
+void list_push_back(List* list, void* value)
 {
 	if (list)
 	{
@@ -91,7 +91,7 @@ void push_back(List* list, void* value)
 	}
 }
 
-void pop_front(List* list)
+void list_pop_front(List* list)
 {
 	if (list && list->size > 0)
 	{
@@ -114,7 +114,7 @@ void pop_front(List* list)
 	}
 }
 
-void pop_back(List* list)
+void list_pop_back(List* list)
 {
 	if (list && list->size > 0)
 	{
@@ -137,17 +137,17 @@ void pop_back(List* list)
 	}
 }
 
-void insert(List* list, void* value, int position)
+void list_insert(List* list, void* value, int position)
 {
 	// TODO
 }
 
-void erase(List* list, int position)
+void list_erase(List* list, int position)
 {
 	// TODO
 }
 
-void remove(List* list, Node* node)
+void list_remove(List* list, Node* node)
 {
 	if (list && node)
 	{
@@ -162,25 +162,25 @@ void remove(List* list, Node* node)
 	}
 }
 
-void clear(List* list)
-{
-	if (list)
-	{
-		clear_nodes(list->head);
-		
-		list->size = 0;
-		list->head = NULL;
-		list->tail = NULL;
-	}
-}
-
-static void clear_nodes(Node* node)
+static void list_clear_nodes(Node* node)
 {
 	if (node)
 	{
 		Node* next = node->next;
 		free(node->value);
 		free(node);
-		clear_nodes(next);
+		list_clear_nodes(next);
+	}
+}
+
+void list_clear(List* list)
+{
+	if (list)
+	{
+		list_clear_nodes(list->head);
+		
+		list->size = 0;
+		list->head = NULL;
+		list->tail = NULL;
 	}
 }

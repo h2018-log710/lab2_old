@@ -30,7 +30,7 @@ void create_process(int arrival_time, Priority priority, int execution_time, int
 	process->is_paused = false;
 	process->is_running = false;
 	
-	push_back(incoming_process_list, process);
+	list_push_back(incoming_process_list, process);
 }
 
 void dispatch_process(Process* process)
@@ -38,19 +38,19 @@ void dispatch_process(Process* process)
 	switch (process->priority)
 	{
 		case REAL_TIME:
-			push_back(real_time_process_list, process);
+			list_push_back(real_time_process_list, process);
 			break;
 		default:
-			switch(process->priority) // TODO Dispatch accordingly [push_back / push_front / insert].
+			switch(process->priority) // TODO Dispatch accordingly [list_push_back / list_push_front / insert].
 			{
 				case USER_HIGH:
-					push_back(user_high_process_list, process);
+					list_push_back(user_high_process_list, process);
 					break;
 				case USER_NORMAL:
-					push_back(user_normal_process_list, process);
+					list_push_back(user_normal_process_list, process);
 					break;
 				case USER_LOW:
-					push_back(user_low_process_list, process);
+					list_push_back(user_low_process_list, process);
 					break;
 				default:
 					printf("Invalid process priority.\n");
@@ -117,28 +117,28 @@ void start_scheduler()
 {
 	Node* node = NULL;
 	Process* process = NULL;
-	
+	/*
 	while (true)
 	{
-		if (!empty(incoming_process_list)) // Check for incoming processes.
+		if (!list_empty(incoming_process_list)) // Check for incoming processes.
 		{
-			dispatch_process((Process*)(front(incoming_process_list))->value);
-			pop_front(incoming_process_list);
+			dispatch_process((Process*)(list_front(incoming_process_list))->value);
+			list_pop_front(incoming_process_list);
 		}
 		
-		if (!empty(real_time_process_list)) // Check if there is any real-time processes.
+		if (!list_empty(real_time_process_list)) // Check if there is any real-time processes.
 		{
 			if (process->priority != REAL_TIME && process->is_running)
 			{
 				// TODO Pause user process if one is currently running.
 			}
 			
-			node = front(real_time_process_list);
+			node = list_front(real_time_process_list);
 			process = (Process*)node->value;
 			
 			if (!process->is_running)
 			{
-				execute_process(process);
+				//execute_process(process);
 				print_process(process);
 				process->is_running = true;
 			}
@@ -146,7 +146,7 @@ void start_scheduler()
 			else if (process->remaining_time <= 0 && process->is_running)
 			{
 				kill(process->pid, SIGINT);
-				remove(real_time_process_list, node);
+				list_remove(real_time_process_list, node);
 			}
 		}
 		
@@ -162,7 +162,7 @@ void start_scheduler()
 		
 		sleep(QUANTUM);
 	}
-	
+	*/
 	free(incoming_process_list);
 	free(real_time_process_list);
 	free(user_high_process_list);

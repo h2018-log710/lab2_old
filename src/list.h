@@ -18,17 +18,17 @@ typedef struct List
 	struct Node* tail;
 } List;
 
-bool empty(const List* list);
-size_t size(const List* list);
-Node* front(List* list);
-Node* back(List* list);
-void push_front(List* list, void* value);
-void push_back(List* list, void* value);
-void pop_front(List* list);
-void pop_back(List* list);
-void insert(List* list, void* value, int position);
-void erase(List* list, int position);
-void remove(List* list, Node* node);
-void clear(List* list);
+bool list_empty(const List* list);
+size_t list_size(const List* list);
+Node* list_front(List* list);
+Node* list_back(List* list);
+void list_push_front(List* list, void* value);
+void list_push_back(List* list, void* value);
+void list_pop_front(List* list);
+void list_pop_back(List* list);
+void list_insert(List* list, void* value, int position);
+void list_erase(List* list, int position);
+void list_remove(List* list, Node* node);
+void list_clear(List* list);
 
 #endif

@@ -71,10 +71,6 @@ bool assign_resources(Process* process, int printer_count, int scanner_count, in
 {
     if(request_resources(printer_count, scanner_count, modem_count, cd_count))
     {
-        return false;
-    }
-    else
-    {
         __do_indv_assign_resource(process, printer_list, printer_count, TOTAL_PRINTER_COUNT);
         __do_indv_assign_resource(process, scanner_list, scanner_count, TOTAL_SCANNER_COUNT);
         __do_indv_assign_resource(process, modem_list, modem_count, TOTAL_MODEM_COUNT);
@@ -84,9 +80,11 @@ bool assign_resources(Process* process, int printer_count, int scanner_count, in
         scanner_available -= scanner_count;
         modem_available   -= modem_count;
         cd_available      -= cd_count;
+
+        return true;
     }
 
-    return true;
+    return false;
 }
 
 /**

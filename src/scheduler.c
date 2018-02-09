@@ -141,6 +141,12 @@ bool dispatch_waiting_process()
 				// This process is now canditate
 				candidate_process = process;
 				candidate_node = node;
+				if(candidate_process->priority == USER_HIGH)
+				{
+					// This is the highest priority that can request resources,
+					// this is the best candidate we have
+					break;
+				}
 			}
 		}
 
@@ -221,7 +227,7 @@ void start_scheduler()
 	{
 		tick++;
 		printf("Tick: %d\n", tick);
-		printf("%d %d %d %d %d\n", incoming_process_list->size, real_time_process_list->size, user_high_process_list->size, user_normal_process_list->size, user_low_process_list->size);
+		printf("%d %d %d %d %d %d\n", incoming_process_list->size, real_time_process_list->size, user_high_process_list->size, user_normal_process_list->size, user_low_process_list->size, user_wait_process_list->size);
 
 		if (!list_empty(incoming_process_list)) // Check for incoming processes.
 		{

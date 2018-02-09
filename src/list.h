@@ -1,6 +1,7 @@
 #ifndef LIST_H
 #define LIST_H
 
+#include <stdbool.h>
 #include <stddef.h>
 
 typedef struct Node
@@ -27,7 +28,7 @@ void pop_front(List* list);
 void pop_back(List* list);
 void insert(List* list, void* value, int position);
 void erase(List* list, int position);
-void remove(List* list, void* value);
+void remove(List* list, Node* node);
 void clear(List* list);
 
 #endif

@@ -14,21 +14,21 @@ static List* user_normal_process_list = NULL;	// User processes with normal prio
 static List* user_low_process_list = NULL;		// User processes with low priority ready to be executed.
 static List* user_wait_process_list = NULL;		// User processes waiting for resources to be available.
 
-void create_process(Priority priority, int arrival_time, int execution_time, int printers, int scanners, int modems, int cds)
+void create_process(int arrival_time, Priority priority, int execution_time, int printers, int scanners, int modems, int cds)
 {
 	Process* process = malloc(sizeof(Process));
 	
-	process.pid = 0;
-	process.priority = priority;
-	process.arrival_time = arrival_time;
-	process.execution_time = execution_time;
-	process.remaining_time = execution_time;
-	process.printers = printers;
-	process.scanners = scanners;
-	process.modems = modems;
-	process.cds = cds;
-	process.is_paused = false;
-	process.is_running = false;
+	process->pid = 0;
+	process->priority = priority;
+	process->arrival_time = arrival_time;
+	process->execution_time = execution_time;
+	process->remaining_time = execution_time;
+	process->printers = printers;
+	process->scanners = scanners;
+	process->modems = modems;
+	process->cds = cds;
+	process->is_paused = false;
+	process->is_running = false;
 	
 	push_back(incoming_process_list, process);
 }
@@ -63,15 +63,15 @@ void dispatch_process(Process* process)
 
 void execute_process(Process* process)
 {
-	process->pid = fork();
+	pid_t pid = fork();
 	
-	if (process->pid == -1)
+	if (pid == -1)
     {
         printf("Failed to fork.\n");
         exit(-1);
     }
     
-    else if (process->pid == 0)
+    else if (pid == 0)
     {
 		char* arguments[2];
 		arguments[0] = "./log710h15process";
@@ -79,7 +79,7 @@ void execute_process(Process* process)
 		
 		process->pid = getpid();
 		
-        if (execvp(arguments[0], arguments) == -1)
+        if (execvp(arguments[0], arguments) == -1) // FIX
         {
             printf("Failed to exec.\n");
             exit(-1);
@@ -89,8 +89,8 @@ void execute_process(Process* process)
 
 void print_process(Process* process)
 {
-	printf("PID: %d, Priority: %d, Remaining Execution Time: %d, Printers: %d, Scanners: %d, Modems: %d, CDs: %d\n",
-		process->pid, process->priority, process->remaining_time, process->printers, process->scanners, process->modems, process->cds);
+	printf("PID: %d, Arrival Time: %d, Priority: %d, Remaining Execution Time: %d, Printers: %d, Scanners: %d, Modems: %d, CDs: %d\n",
+		process->pid, process->arrival_time, process->priority, process->remaining_time, process->printers, process->scanners, process->modems, process->cds);
 }
 
 bool validate_resources(int available, int needed)
@@ -103,17 +103,20 @@ bool validate_resources(int available, int needed)
 	return false;
 }
 
-void start_scheduler()
+void initialize_scheduler()
 {
-	Node* node = NULL;
-	Process* process = NULL;
-	
 	incoming_process_list = malloc(sizeof(List));
 	real_time_process_list = malloc(sizeof(List));
 	user_high_process_list = malloc(sizeof(List));
 	user_normal_process_list = malloc(sizeof(List));
 	user_low_process_list = malloc(sizeof(List));
 	user_wait_process_list = malloc(sizeof(List));
+}
+
+void start_scheduler()
+{
+	Node* node = NULL;
+	Process* process = NULL;
 	
 	while (true)
 	{
@@ -125,7 +128,7 @@ void start_scheduler()
 		
 		if (!empty(real_time_process_list)) // Check if there is any real-time processes.
 		{
-			if (process->priority != REAL_TIME && process->running)
+			if (process->priority != REAL_TIME && process->is_running)
 			{
 				// TODO Pause user process if one is currently running.
 			}
@@ -133,14 +136,14 @@ void start_scheduler()
 			node = front(real_time_process_list);
 			process = (Process*)node->value;
 			
-			if (!process->running)
+			if (!process->is_running)
 			{
 				execute_process(process);
 				print_process(process);
-				process->running = true;
+				process->is_running = true;
 			}
 			
-			else if (process->remaining_time <= 0 && process->running)
+			else if (process->remaining_time <= 0 && process->is_running)
 			{
 				kill(process->pid, SIGINT);
 				remove(real_time_process_list, node);
@@ -152,7 +155,7 @@ void start_scheduler()
 			// TODO
 		}
 		
-		if (process->is_running)
+		if (process && process->is_running)
 		{
 			--process->remaining_time;
 		}

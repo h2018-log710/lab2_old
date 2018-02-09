@@ -3,6 +3,8 @@
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <sys/types.h>
+#include <sys/wait.h>
 
 static const int QUANTUM = 1;
 
@@ -19,6 +21,7 @@ void create_process(int arrival_time, Priority priority, int execution_time, int
 	
 	process->pid = 0;
 	process->priority = priority;
+	process->state = NEW;
 	process->arrival_time = arrival_time;
 	process->execution_time = execution_time;
 	process->remaining_time = execution_time;
@@ -26,8 +29,6 @@ void create_process(int arrival_time, Priority priority, int execution_time, int
 	process->scanners = scanners;
 	process->modems = modems;
 	process->cds = cds;
-	process->is_paused = false;
-	process->is_running = false;
 	
 	list_push_back(incoming_process_list, process);
 }
@@ -37,10 +38,11 @@ void dispatch_process(int tick)
 	Node* node = incoming_process_list->head;
 	Process* process = NULL;
 
-	while(node)
+	while (node)
 	{
 		process = (Process*)node->value;
-		if(process->arrival_time == tick)
+		
+		if (process->arrival_time == tick)
 		{
 			switch (process->priority)
 			{
@@ -61,8 +63,11 @@ void dispatch_process(int tick)
 					exit(-1);
 					break;
 			}
+			
+			process->state = READY;
 			list_remove(incoming_process_list, node);
 		}
+		
 		node = node->next;
 	}
 }
@@ -112,41 +117,90 @@ bool validate_resources(int available, int needed)
 	return false;
 }
 
-void manage_process(List* list, Process** process, Priority priority)
+void manage_process(List* list, Node** node, Priority priority)
 {
-	Node* node = NULL;
+	Process* process = NULL;
 	
-	if (*process && (*process)->priority < priority && (*process)->is_running)
+	if (*node)
 	{
-		kill((*process)->pid, SIGSTOP);
-		// TODO waitpid
+		process = (Process*)(*node)->value;
+	}
+	
+	if (process)
+		printf("List Priority: %d Priority: %d State: %d.\n", priority, process->priority, process->state);
+	
+	// Check if the current process must be paused.
+	if (process && priority < process->priority && process->state == RUNNING)
+	{
+		kill(process->pid, SIGTSTP);
+		waitpid(process->pid, NULL, WUNTRACED);
+		process->state = WAITING;
 		
-		if ((*process)->priority > USER_LOW && priority < REAL_TIME)
+		// Check if the priority of the current process is at least higher than low.
+		if (process->priority < USER_LOW)
 		{
-			--(*process)->priority;
+			/*++process->priority; // TODO Increment or decrement?
+			
+			switch (process->priority)
+			{
+				case USER_NORMAL:
+					printf("List Size Before: %d ", list->size);
+					list_remove(user_high_process_list, *node);
+					
+					list_push_back(user_normal_process_list, *node);
+					printf("List Size After: %d\n", list->size);
+					break;
+				case USER_LOW:
+					list_remove(user_normal_process_list, *node);
+					list_push_back(user_low_process_list, *node);
+					break;
+				default:
+					printf("Invalid process change.\n");
+					exit(-1);
+					break;
+			}*/
 		}
 	}
 	
-	node = list_front(list);
-	*process = (Process*)node->value;
+	*node = list_front(list);
+	process = (Process*)(*node)->value;
 	
-	if (*process)
+	if (process)
 	{
-		if (!(*process)->is_running)
+		// Check if the current process is ready to be run.
+		if (process->state == READY)
 		{
-			execute_process(*process);
-			print_process(*process);
-			(*process)->is_running = true;
+			execute_process(process);
+			print_process(process);
+			process->state = RUNNING;
 		}
-	
-		else if ((*process)->remaining_time <= 0 && (*process)->is_running)
+		
+		// Check if the current process is paused.
+		else if (process->state == WAITING)
 		{
-			kill((*process)->pid, SIGINT);
-			free(*process);
-			*process = NULL;
-			list_remove(list, node);
+			kill(process->pid, SIGCONT);
+			process->state = RUNNING;
+		}
+		
+		// Check if the current process is running.
+		else if (process->state == RUNNING)
+		{
+			--process->remaining_time;
+			
+			// Check if the current process is ready to be terminated.
+			if (process->remaining_time <= 0)
+			{
+				kill(process->pid, SIGINT);
+				waitpid(process->pid, NULL, 0);
+			
+				free(process);
+				(*node)->value = NULL;
+				list_remove(list, *node);
+			}
 		}
 	}
+	
+	
 }
 
 void initialize_scheduler()
@@ -161,51 +215,53 @@ void initialize_scheduler()
 
 void start_scheduler()
 {
-	Process* process = NULL;
+	Node* node = NULL;
 	int tick = 0;
 	
 	while (incoming_process_list->size != 0
-	    || real_time_process_list->size != 0
+	    	|| real_time_process_list->size != 0
 		|| user_high_process_list->size != 0
 		|| user_normal_process_list->size != 0
 		|| user_low_process_list->size != 0
 		|| user_wait_process_list->size != 0)
 	{
-		tick++;
-		printf("Tick: %d\n", tick);
-		printf("%d %d %d %d %d\n", incoming_process_list->size, real_time_process_list->size, user_high_process_list->size, user_normal_process_list->size, user_low_process_list->size);
-
-		if (!list_empty(incoming_process_list)) // Check for incoming processes.
+		++tick;
+		printf("Tick: %d ", tick);
+		printf("Lists: %d %d %d %d %d %d\n", incoming_process_list->size, real_time_process_list->size, user_high_process_list->size,
+			user_normal_process_list->size, user_low_process_list->size, user_wait_process_list->size);
+		
+		// Check for incoming processes.
+		if (!list_empty(incoming_process_list))
 		{
 			dispatch_process(tick);
 		}
 		
-		if (!list_empty(real_time_process_list)) // Check if there is any real-time processes.
+		// Check if there is any real-time processes.
+		if (!list_empty(real_time_process_list))
 		{
-			manage_process(real_time_process_list, &process, REAL_TIME);
+			manage_process(real_time_process_list, &node, REAL_TIME);
 		}
 		
-		else // No real-time processes available, check for user processes.
+		// No real-time processes available, check for user processes.
+		else
 		{
-			if (!list_empty(user_high_process_list)) // Check if there is any high priority processes.
+			// Check if there is any high priority processes.
+			if (!list_empty(user_high_process_list))
 			{	
-				manage_process(user_high_process_list, &process, USER_HIGH);
+				manage_process(user_high_process_list, &node, USER_HIGH);
 			}
 			
-			else if (!list_empty(user_normal_process_list)) // Check if there is any normal priority processes.
+			// Check if there is any normal priority processes.
+			else if (!list_empty(user_normal_process_list))
 			{
-				manage_process(user_normal_process_list, &process, USER_NORMAL);
+				manage_process(user_normal_process_list, &node, USER_NORMAL);
 			}
 			
-			else if (!list_empty(user_low_process_list)) // Check if there is any low priority processes.
+			// Check if there is any low priority processes.
+			else if (!list_empty(user_low_process_list))
 			{
-				manage_process(user_low_process_list, &process, USER_LOW);
+				manage_process(user_low_process_list, &node, USER_LOW);
 			}
-		}
-		
-		if (process && process->is_running)
-		{
-			--process->remaining_time;
 		}
 		
 		sleep(QUANTUM);

@@ -96,7 +96,8 @@ void pop_front(List* list)
 	if (list && list->size > 0)
 	{
 		Node* new = list->head->next;
-		free(list->head);
+		free(list->head->value); // Free the value.
+		free(list->head); // Free the node.
 		
 		if (list->size > 1)
 		{
@@ -118,7 +119,8 @@ void pop_back(List* list)
 	if (list && list->size > 0)
 	{
 		Node* new = list->tail->previous;
-		free(list->tail);
+		free(list->tail->value); // Free the value.
+		free(list->tail); // Free the node.
 		
 		if (list->size == 1)
 		{
@@ -167,7 +169,8 @@ static void clear(Node* node)
 	if (node)
 	{
 		Node* next = node->next;
-		free(node);
+		free(node->value); // Free the value.
+		free(node); // Free the node.
 		clear(next);
 	}
 }

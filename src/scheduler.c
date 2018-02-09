@@ -2,6 +2,7 @@
 #include "list.h"
 #include <unistd.h>
 #include <signal.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 static const int QUANTUM = 1;
@@ -30,12 +31,6 @@ void create_process(Priority priority, int arrival_time, int execution_time, int
 	process.is_running = false;
 	
 	push_back(incoming_process_list, process);
-}
-
-void delete_process(Node* list, Process* process)
-{
-	remove(list, process); // FIX
-	free(process);
 }
 
 void dispatch_process(Process* process)
@@ -92,6 +87,12 @@ void execute_process(Process* process)
 	}
 }
 
+void print_process(Process* process)
+{
+	printf("PID: %d, Priority: %d, Remaining Execution Time: %d, Printers: %d, Scanners: %d, Modems: %d, CDs: %d\n",
+		process->pid, process->priority, process->remaining_time, process->printers, process->scanners, process->modems, process->cds);
+}
+
 bool validate_resources(int available, int needed)
 {
 	if (available >= needed)
@@ -104,7 +105,8 @@ bool validate_resources(int available, int needed)
 
 void start_scheduler()
 {
-	Process* current = NULL;
+	Node* node = NULL;
+	Process* process = NULL;
 	
 	incoming_process_list = malloc(sizeof(List));
 	real_time_process_list = malloc(sizeof(List));
@@ -123,25 +125,25 @@ void start_scheduler()
 		
 		if (!empty(real_time_process_list)) // Check if there is any real-time processes.
 		{
-			if (current->priority != REAL_TIME && current->running)
+			if (process->priority != REAL_TIME && process->running)
 			{
 				// TODO Pause user process if one is currently running.
 			}
 			
-			current = (Process*)(front(real_time_process_list))->value;
+			node = front(real_time_process_list);
+			process = (Process*)node->value;
 			
-			if (!current->running)
+			if (!process->running)
 			{
-				execute_process(current);
-				// TODO Print process information.
-				current->running = true;
+				execute_process(process);
+				print_process(process);
+				process->running = true;
 			}
 			
-			else if (current->remaining_time <= 0 && current->running)
+			else if (process->remaining_time <= 0 && process->running)
 			{
-				kill(current->pid, SIGINT);
-				delete_process(real_time_process_list, current);
-				current->running = false;
+				kill(process->pid, SIGINT);
+				remove(real_time_process_list, node);
 			}
 		}
 		
@@ -150,9 +152,9 @@ void start_scheduler()
 			// TODO
 		}
 		
-		if (current->is_running)
+		if (process->is_running)
 		{
-			--current->remaining_time;
+			--process->remaining_time;
 		}
 		
 		sleep(QUANTUM);

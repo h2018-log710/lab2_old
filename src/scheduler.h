@@ -28,9 +28,10 @@ typedef struct Process
 } Process;
 
 void create_process(Priority priority, int arrival_time, int execution_time, int printers, int scanners, int modems, int cds);
-void delete_process(Process* process);
 void dispatch_process(Process* process);
 void execute_process(Process* process);
+void print_process(Process* process);
 bool validate_resources(int needed, int available);
+void start_scheduler();
 
 #endif

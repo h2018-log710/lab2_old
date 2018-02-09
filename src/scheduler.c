@@ -117,7 +117,7 @@ void start_scheduler()
 {
 	Node* node = NULL;
 	Process* process = NULL;
-	/*
+	
 	while (true)
 	{
 		if (!list_empty(incoming_process_list)) // Check for incoming processes.
@@ -162,7 +162,7 @@ void start_scheduler()
 		
 		sleep(QUANTUM);
 	}
-	*/
+	
 	free(incoming_process_list);
 	free(real_time_process_list);
 	free(user_high_process_list);

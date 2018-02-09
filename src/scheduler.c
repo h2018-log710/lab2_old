@@ -1,4 +1,5 @@
 #include "scheduler.h"
+#include "resource.h"
 #include <unistd.h>
 #include <signal.h>
 #include <stdio.h>
@@ -44,27 +45,7 @@ void dispatch_process(int tick)
 		
 		if (process->arrival_time == tick)
 		{
-			switch (process->priority)
-			{
-				case REAL_TIME:
-					list_push_back(real_time_process_list, process);
-					break;
-				case USER_HIGH:
-					list_push_back(user_high_process_list, process);
-					break;
-				case USER_NORMAL:
-					list_push_back(user_normal_process_list, process);
-					break;
-				case USER_LOW:
-					list_push_back(user_low_process_list, process);
-					break;
-				default:
-					printf("Invalid process priority.\n");
-					exit(-1);
-					break;
-			}
-			
-			process->state = READY;
+			admit_process(process);
 			list_remove(incoming_process_list, node);
 		}
 		
@@ -101,20 +82,95 @@ void execute_process(Process* process)
 	}
 }
 
+void admit_process(Process* process)
+{
+	if(assign_resources(process, process->printers, process->scanners, process->modems, process->cds))
+	{
+		switch (process->priority)
+		{
+			case REAL_TIME:
+				list_push_back(real_time_process_list, process);
+				break;
+			case USER_HIGH:
+				list_push_back(user_high_process_list, process);
+				break;
+			case USER_NORMAL:
+				list_push_back(user_normal_process_list, process);
+				break;
+			case USER_LOW:
+				list_push_back(user_low_process_list, process);
+				break;
+			default:
+				printf("Invalid process priority.\n");
+				exit(-1);
+				break;
+		}
+
+		process->state = READY;
+	}
+	else
+	{
+		// The requested resources are not available, we put the process in the wait list
+		list_push_back(user_wait_process_list, process);
+	}
+}
+
 void print_process(Process* process)
 {
 	printf("PID: %d, Arrival Time: %d, Priority: %d, Remaining Execution Time: %d, Printers: %d, Scanners: %d, Modems: %d, CDs: %d\n",
 		process->pid, process->arrival_time, process->priority, process->remaining_time, process->printers, process->scanners, process->modems, process->cds);
 }
 
-bool validate_resources(int available, int needed)
+void dispatch_waiting_process()
 {
-	if (available >= needed)
+	Node* node = NULL;
+	Node* candidate_node = NULL;
+	Process* process = NULL;
+	Process* candidate_process = NULL;
+
+	// For as long we have processes to dispatch
+	while(user_wait_process_list->size == 0)
 	{
-		return true;
+		node = user_wait_process_list->head;
+		candidate_node = NULL;
+		candidate_process = NULL;
+		while(node)
+		{
+			process = (Process*)node->value;
+			if(candidate_process && candidate_process->priority < process->priority)
+			{
+				// We assign resources to higher priority process first
+				continue;
+			}
+			else if(request_resources(process->printers, process->scanners, process->modems, process->cds))
+			{
+				// This process is now canditate
+				candidate_process = process;
+				candidate_node = node;
+				if(candidate_process->priority == USER_HIGH)
+				{
+					// This is the highest priority that can request resources,
+					// this is the best candidate we will have
+					break;
+				}
+			}
+			node = node->next;
+		}
+
+		if(candidate_process)
+		{
+			// admit
+			admit_process(process);
+			list_remove(user_wait_process_list, candidate_node);
+		}
+		else
+		{
+			// We ran out of resources to assign
+			break;
+		}
+
 	}
-	
-	return false;
+
 }
 
 void manage_process(List* list, Node** node, Priority priority)
@@ -227,8 +283,8 @@ void start_scheduler()
 	{
 		++tick;
 		printf("Tick: %d ", tick);
-		printf("Lists: %d %d %d %d %d %d\n", incoming_process_list->size, real_time_process_list->size, user_high_process_list->size,
-			user_normal_process_list->size, user_low_process_list->size, user_wait_process_list->size);
+		printf("Lists: %d %d %d %d %d %d %d\n", incoming_process_list->size, real_time_process_list->size, user_high_process_list->size,
+			user_normal_process_list->size, user_low_process_list->size, user_wait_process_list->size, user_wait_process_list->size);
 		
 		// Check for incoming processes.
 		if (!list_empty(incoming_process_list))

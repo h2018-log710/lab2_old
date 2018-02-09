@@ -38,9 +38,10 @@ typedef struct Process
 void create_process(int arrival_time, Priority priority, int execution_time, int printers, int scanners, int modems, int cds);
 void dispatch_process(int tick);
 void execute_process(Process* process);
+void admit_process(Process* process);
 void print_process(Process* process);
-bool validate_resources(int needed, int available);
 void manage_process(List* list, Node** node, Priority priority);
+void dispatch_waiting_process();
 void initialize_scheduler();
 void start_scheduler();
 

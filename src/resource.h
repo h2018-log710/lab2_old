@@ -13,7 +13,8 @@ typedef struct Resource
     Process* assignedProcess;
 } Resource;
 
-int assign_resource(Process* process, int printer_count, int scanner_count, int modem_count, int cd_count);
-void free_resource(Process* process);
+bool request_resources(int printer_count, int scanner_count, int modem_count, int cd_count);
+bool assign_resources(Process* process, int printer_count, int scanner_count, int modem_count, int cd_count);
+void free_resources(Process* process);
 
 #endif

@@ -50,18 +50,28 @@ int __do_indv_free_resource(Process* process, Resource resource_list[], int tota
 }
 
 /**
- * Assign resources to a process
- * Return 1 if the requested resource are not available
- * Return 0 if resources were successfully assigned
+ * Check if resources are available, but don't assign them
+ * Return false if the requested resource are not available
+ * Return true if resources were successfully assigned
  */
-int assign_resources(Process* process, int printer_count, int scanner_count, int modem_count, int cd_count)
+bool request_resources(int printer_count, int scanner_count, int modem_count, int cd_count)
 {
-    if(printer_count > printer_available
-    || scanner_count > scanner_available
-    || modem_count   > modem_available
-    || cd_count      > cd_available)
+    return printer_count <= printer_available
+        && scanner_count <= scanner_available
+        && modem_count   <= modem_available
+        && cd_count      <= cd_available;
+}
+
+/**
+ * Assign resources to a process
+ * Return false if the requested resource are not available
+ * Return true if resources were successfully assigned
+ */
+bool assign_resources(Process* process, int printer_count, int scanner_count, int modem_count, int cd_count)
+{
+    if(request_resources(printer_count, scanner_count, modem_count, cd_count))
     {
-        return 1;
+        return false;
     }
     else
     {
@@ -76,13 +86,13 @@ int assign_resources(Process* process, int printer_count, int scanner_count, int
         cd_available      -= cd_count;
     }
 
-    return 0;
+    return true;
 }
 
 /**
  * Free resources used up by a process
  */
-void free_resource(Process *process)
+void free_resources(Process *process)
 {
     printer_available += __do_indv_free_resource(process, printer_list, TOTAL_PRINTER_COUNT);
     scanner_available += __do_indv_free_resource(process, scanner_list, TOTAL_SCANNER_COUNT);

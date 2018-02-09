@@ -43,25 +43,7 @@ void dispatch_process(int tick)
 		process = (Process*)node->value;
 		if(process->arrival_time == tick)
 		{
-			switch (process->priority)
-			{
-				case REAL_TIME:
-					list_push_back(real_time_process_list, process);
-					break;
-				case USER_HIGH:
-					list_push_back(user_high_process_list, process);
-					break;
-				case USER_NORMAL:
-					list_push_back(user_normal_process_list, process);
-					break;
-				case USER_LOW:
-					list_push_back(user_low_process_list, process);
-					break;
-				default:
-					printf("Invalid process priority.\n");
-					exit(-1);
-					break;
-			}
+			admit_process(process);
 			list_remove(incoming_process_list, node);
 		}
 		node = node->next;
@@ -97,20 +79,85 @@ void execute_process(Process* process)
 	}
 }
 
+void admit_process(Process* process)
+{
+	if(assign_resources(process, process->printers, process->scanners, process->modems, process->cds))
+	{
+		switch (process->priority)
+		{
+			case REAL_TIME:
+				list_push_back(real_time_process_list, process);
+				break;
+			case USER_HIGH:
+				list_push_back(user_high_process_list, process);
+				break;
+			case USER_NORMAL:
+				list_push_back(user_normal_process_list, process);
+				break;
+			case USER_LOW:
+				list_push_back(user_low_process_list, process);
+				break;
+			default:
+				printf("Invalid process priority.\n");
+				exit(-1);
+				break;
+		}
+	}
+	else
+	{
+		// The requested resources are not available, we put the process in the wait list
+		list_push_back(user_wait_process_list, process);
+	}
+}
+
 void print_process(Process* process)
 {
 	printf("PID: %d, Arrival Time: %d, Priority: %d, Remaining Execution Time: %d, Printers: %d, Scanners: %d, Modems: %d, CDs: %d\n",
 		process->pid, process->arrival_time, process->priority, process->remaining_time, process->printers, process->scanners, process->modems, process->cds);
 }
 
-bool validate_resources(int available, int needed)
+bool dispatch_waiting_process()
 {
-	if (available >= needed)
+	Process* candidate_process = NULL;
+
+	// For as long we have processes to dispatch
+	while(user_wait_process_list->size == 0)
 	{
-		return true;
+		Node* node = user_wait_process_list->head;
+		Node* candidate_node = NULL;
+		Process* process = NULL;
+
+		candidate_process = NULL;
+		while(node)
+		{
+			process = (Process*)node->value;
+			if(candidate_process && candidate_process->priority < process->priority)
+			{
+				// We assign resources to higher priority process first
+				continue;
+			}
+			else if(request_resources(process->printers, process->scanners, process->modems, process->cds))
+			{
+				// This process is now canditate
+				candidate_process = process;
+				candidate_node = node;
+			}
+		}
+
+		if(candidate_process)
+		{
+			// admit
+			admit_process(process);
+			list_remove(user_wait_process_list, candidate_node);
+		}
+		else
+		{
+			// We ran out of resources to assign
+			break;
+		}
+
 	}
-	
-	return false;
+
 }
 
 void manage_process(List* list, Process** process, Priority priority)

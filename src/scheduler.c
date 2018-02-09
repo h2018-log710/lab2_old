@@ -7,12 +7,12 @@
 
 static const int QUANTUM = 1;
 
-static List* incoming_process_list = NULL;		// Incoming processes yet to be dispatched.
-static List* real_time_process_list = NULL;		// Real-time processes ready to be executed.
-static List* user_high_process_list = NULL;		// User processes with high priority ready to be executed.
+static List* incoming_process_list = NULL;	// Incoming processes yet to be dispatched.
+static List* real_time_process_list = NULL;	// Real-time processes ready to be executed.
+static List* user_high_process_list = NULL;	// User processes with high priority ready to be executed.
 static List* user_normal_process_list = NULL;	// User processes with normal priority ready to be executed.
-static List* user_low_process_list = NULL;		// User processes with low priority ready to be executed.
-static List* user_wait_process_list = NULL;		// User processes waiting for resources to be available.
+static List* user_low_process_list = NULL;	// User processes with low priority ready to be executed.
+static List* user_wait_process_list = NULL;	// User processes waiting for resources to be available.
 
 void create_process(int arrival_time, Priority priority, int execution_time, int printers, int scanners, int modems, int cds)
 {
@@ -66,24 +66,27 @@ void execute_process(Process* process)
 	pid_t pid = fork();
 	
 	if (pid == -1)
-    {
-        printf("Failed to fork.\n");
-        exit(-1);
-    }
+    	{
+        	printf("Failed to fork.\n");
+        	exit(-1);
+    	}
     
-    else if (pid == 0)
-    {
+    	else if (pid == 0)
+    	{
 		char* arguments[2];
-		arguments[0] = "./log710h15process";
+		arguments[0] = "./bin/log710h15process";
 		arguments[1] = NULL;
 		
-		process->pid = getpid();
-		
-        if (execvp(arguments[0], arguments) == -1) // FIX
-        {
-            printf("Failed to exec.\n");
-            exit(-1);
-        }
+		if (execvp(arguments[0], arguments) == -1)
+		{
+		    printf("Failed to exec.\n");
+		    exit(-1);
+		}
+	}
+	
+	else
+	{
+		process->pid = pid;
 	}
 }
 
@@ -128,7 +131,7 @@ void start_scheduler()
 		
 		if (!list_empty(real_time_process_list)) // Check if there is any real-time processes.
 		{
-			if (process->priority != REAL_TIME && process->is_running)
+			if (process && process->priority != REAL_TIME && process->is_running)
 			{
 				// TODO Pause user process if one is currently running.
 			}
@@ -138,7 +141,7 @@ void start_scheduler()
 			
 			if (!process->is_running)
 			{
-				//execute_process(process);
+				execute_process(process);
 				print_process(process);
 				process->is_running = true;
 			}
@@ -146,6 +149,7 @@ void start_scheduler()
 			else if (process->remaining_time <= 0 && process->is_running)
 			{
 				kill(process->pid, SIGINT);
+				free(process);
 				list_remove(real_time_process_list, node);
 			}
 		}

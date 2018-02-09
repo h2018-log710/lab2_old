@@ -96,7 +96,6 @@ void list_pop_front(List* list)
 	if (list && list->size > 0)
 	{
 		Node* new = list->head->next;
-		free(list->head->value);
 		free(list->head);
 		
 		if (list->size > 1)
@@ -119,7 +118,6 @@ void list_pop_back(List* list)
 	if (list && list->size > 0)
 	{
 		Node* new = list->tail->previous;
-		free(list->tail->value);
 		free(list->tail);
 		
 		if (list->size == 1)
@@ -154,11 +152,29 @@ void list_remove(List* list, Node* node)
 		Node* previous = node->previous;
 		Node* next = node->next;
 		
-		free(node->value);
 		free(node);
 		
-		previous->next = next;
-		next->previous = previous;
+		if (previous != NULL)
+		{
+			previous->next = next;
+		}
+		
+		else
+		{
+			list->head = next;
+		}
+		
+		if (next != NULL)
+		{
+			next->previous = previous;
+		}
+		
+		else
+		{
+			list->tail = previous;
+		}
+		
+		--list->size;
 	}
 }
 
@@ -167,7 +183,6 @@ static void list_clear_nodes(Node* node)
 	if (node)
 	{
 		Node* next = node->next;
-		free(node->value);
 		free(node);
 		list_clear_nodes(next);
 	}

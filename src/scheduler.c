@@ -111,6 +111,7 @@ void admit_process(Process* process)
 	else
 	{
 		// The requested resources are not available, we put the process in the wait list
+		process->state = WAITING;
 		list_push_back(user_wait_process_list, process);
 	}
 }
@@ -247,11 +248,14 @@ void manage_process(List* list, Node** node, Priority priority)
 			if (process->remaining_time <= 0)
 			{
 				kill(process->pid, SIGINT);
+				free_resources(process);
 				waitpid(process->pid, NULL, 0);
 			
 				free(process);
 				(*node)->value = NULL;
 				list_remove(list, *node);
+
+				dispatch_waiting_process();
 			}
 		}
 	}

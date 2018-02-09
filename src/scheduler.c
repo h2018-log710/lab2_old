@@ -118,15 +118,16 @@ void print_process(Process* process)
 
 bool dispatch_waiting_process()
 {
+	Node* node = NULL;
+	Node* candidate_node = NULL;
+	Process* process = NULL;
 	Process* candidate_process = NULL;
 
 	// For as long we have processes to dispatch
 	while(user_wait_process_list->size == 0)
 	{
-		Node* node = user_wait_process_list->head;
-		Node* candidate_node = NULL;
-		Process* process = NULL;
-
+		user_wait_process_list->head;
+		candidate_node = NULL;
 		candidate_process = NULL;
 		while(node)
 		{
@@ -144,10 +145,11 @@ bool dispatch_waiting_process()
 				if(candidate_process->priority == USER_HIGH)
 				{
 					// This is the highest priority that can request resources,
-					// this is the best candidate we have
+					// this is the best candidate we will have
 					break;
 				}
 			}
+			node = node->next;
 		}
 
 		if(candidate_process)
